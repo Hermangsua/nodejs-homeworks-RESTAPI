@@ -14,4 +14,16 @@ router.delete("/:contactId", ctrlWrapper(contactsController.deleteById));
 
 router.put("/:contactId", ctrlWrapper(contactsController.updateById));
 
+router.patch(
+  "/:contactId/favorite",
+  ctrlWrapper(contactsController.updateFavoriteById)
+);
+
 module.exports = router;
+
+// password P4NeUurQEFUsvP9x
+// hermangsua;
+
+// DB
+// LSNar2t$JLrKMe!
+// hermangsua;
