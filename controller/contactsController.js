@@ -4,7 +4,13 @@ const { RequestError } = require("../helpers");
 const Contact = require("../models/contacts");
 
 const getAllContacts = async (req, res, next) => {
-  const contacts = await Contact.find({}, "-__v");
+  const { id: owner } = req.user;
+  const { page = 1, limit = 20 } = req.query;
+  const skip = (page - 1) * limit;
+  const contacts = await Contact.find({ owner }, "-__v", {
+    skip,
+    limit: Number(limit),
+  }).populate("owner", "email subscription");
   res.status(200).json({ data: contacts });
 };
 
@@ -18,6 +24,7 @@ const contactById = async (req, res, next) => {
 };
 
 const addNewContact = async (req, res, next) => {
+  const { id: owner } = req.user;
   const contactSchema = Joi.object({
     name: Joi.string().required(),
     email: Joi.string().required(),
@@ -30,7 +37,7 @@ const addNewContact = async (req, res, next) => {
     throw RequestError(400, "Missing required name field");
   } else {
     value.id = shortid.generate();
-    const contact = await Contact.create(req.body);
+    const contact = await Contact.create({ ...req.body, owner });
     res.status(201).json({ data: contact });
   }
 };
