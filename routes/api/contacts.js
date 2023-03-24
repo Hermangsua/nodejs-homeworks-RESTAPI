@@ -1,14 +1,15 @@
 const express = require("express");
 const { ctrlWrapper } = require("../../helpers");
 const contactsController = require("../../controller/contactsController");
+const { auth } = require("../../middlewares/auth");
 
 const router = express.Router();
 
-router.get("/", ctrlWrapper(contactsController.getAllContacts));
+router.get("/", auth, ctrlWrapper(contactsController.getAllContacts));
 
 router.get("/:contactId", ctrlWrapper(contactsController.contactById));
 
-router.post("/", ctrlWrapper(contactsController.addNewContact));
+router.post("/", auth, ctrlWrapper(contactsController.addNewContact));
 
 router.delete("/:contactId", ctrlWrapper(contactsController.deleteById));
 
@@ -20,10 +21,3 @@ router.patch(
 );
 
 module.exports = router;
-
-// password P4NeUurQEFUsvP9x
-// hermangsua;
-
-// DB
-// LSNar2t$JLrKMe!
-// hermangsua;
