@@ -2,7 +2,11 @@ const express = require("express");
 const { ctrlWrapper } = require("../../helpers");
 const authController = require("../../controller/authController");
 const { validateBody } = require("../../middlewares/validateBody");
-const { registerSchema, loginSchema } = require("../../schemas/auth");
+const {
+  registerSchema,
+  loginSchema,
+  emailSchema,
+} = require("../../schemas/auth");
 const { auth } = require("../../middlewares/auth");
 const { upload } = require("../../middlewares/upload");
 
@@ -25,6 +29,17 @@ router.patch(
   auth,
   upload.single("avatar"),
   ctrlWrapper(authController.avatars)
+);
+
+router.get(
+  "/verify/:verificationCode",
+  ctrlWrapper(authController.verifyEmail)
+);
+
+router.get(
+  "/verify",
+  validateBody(emailSchema),
+  ctrlWrapper(authController.resentVerifyEmail)
 );
 
 module.exports = router;
