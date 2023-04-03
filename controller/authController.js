@@ -6,10 +6,11 @@ const path = require("path");
 const fs = require("fs/promises");
 
 const User = require("../models/user");
-const { RequestError } = require("../helpers");
+const { RequestError, sendEmail } = require("../helpers");
 const avatarsDir = path.join(__dirname, "../", "public", "avatars");
 
-const { TOKEN_KEY } = process.env;
+const { TOKEN_KEY, BASE_URL } = process.env;
+const { nanoid } = require("nanoid");
 
 const register = async (req, res, next) => {
   const { email, password } = req.body;
@@ -18,16 +19,61 @@ const register = async (req, res, next) => {
     throw RequestError(409, `Email in use`);
   }
   const avatarURL = gravatar.url(email, { protocol: "https", s: "100" });
+  const verificationCode = nanoid();
   const hashedPassword = await bcrypt.hash(password, 10);
+
   const user = await User.create({
     email,
     password: hashedPassword,
     avatarURL,
+    verificationCode,
   });
+
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `<a target="_blank" href="${BASE_URL}/api/auth/verify/${verificationCode}"> CLick verify email</a>`,
+  };
+  await sendEmail(verifyEmail);
+
   res.status(201).json({
     email: user.email,
     subscription: user.subscription,
     avatarURL,
+  });
+};
+
+const resentVerifyEmail = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw HttpError(401, "Missing required field email");
+  }
+  if (user.verify) {
+    throw HttpError(401, "Verification has already been passed");
+  }
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `<a href="${BASE_URL}/api/auth/verify/${user.verificationCode}">Click verify email</a>`,
+  };
+  await sendEmail(verifyEmail);
+
+  res.json({
+    message: "Verify email send success",
+  });
+};
+
+const verifyEmail = async (req, res) => {
+  const { verificationCode } = req.params;
+  const user = await User.findOne({ verificationCode });
+  if (!user) throw HttpError(401, " Email not found");
+  await User.findByIdAndUpdate(user._id, {
+    verify: true,
+    verificationCode: "",
+  });
+  res.json({
+    message: "Email verify success",
   });
 };
 
@@ -37,6 +83,9 @@ const login = async (req, res, next) => {
   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
   if (!isPasswordValid || !existingUser) {
     throw RequestError(401, "Email or password is wrong");
+  }
+  if (!existingUser.verify) {
+    throw HttpError(401, "Email not verified");
   }
   const payload = {
     id: existingUser._id,
@@ -83,4 +132,12 @@ const avatars = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, logout, current, avatars };
+module.exports = {
+  register,
+  login,
+  logout,
+  current,
+  avatars,
+  resentVerifyEmail,
+  verifyEmail,
+};
